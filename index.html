@@ -23,6 +23,15 @@
         Personal Access Token
         <input id="input-token" type="password" placeholder="ghp_xxxxxxxxxxxx" />
       </label>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:8px 0" />
+      <p class="hint" style="margin-bottom:12px">
+        Google Drive 自動保存（任意）<br />
+        Client ID を設定すると、休み追加時に Drive へ自動保存されます。
+      </p>
+      <label>
+        Google Client ID <small>（任意）</small>
+        <input id="input-gclient" type="text" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com" />
+      </label>
       <div class="modal-actions">
         <button id="btn-save-settings" class="btn-primary">保存して接続</button>
         <button id="btn-cancel-settings" class="btn-ghost">キャンセル</button>
@@ -106,6 +115,7 @@
     </div>
   </main>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="app.js"></script>
 </body>
 </html>

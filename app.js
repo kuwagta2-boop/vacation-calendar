@@ -5,6 +5,8 @@
 
 const VACATION_LABEL = 'vacation';
 const MEMBER_LABEL_PREFIX = 'member-';
+const DRIVE_FOLDER_ID = '1F8m4_6KCIJevFN1ntT8SHXbP_B-my4nv';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 // メンバーカラーパレット（HSL）
 const PALETTE = [
@@ -17,6 +19,8 @@ const PALETTE = [
 let state = {
   repo: '',
   token: '',
+  gClientId: '',
+  gAccessToken: '',
   year: new Date().getFullYear(),
   month: new Date().getMonth(), // 0-indexed
   vacations: [],       // { id, number, member, start, end, memo, color }
@@ -25,6 +29,77 @@ let state = {
   loading: false,
   deleteTarget: null,
 };
+
+// ─── Google Drive 連携 ───────────────────────
+
+function googleSignIn() {
+  return new Promise((resolve, reject) => {
+    if (!state.gClientId) return reject(new Error('Google Client ID が設定されていません'));
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: state.gClientId,
+      scope: DRIVE_SCOPE,
+      callback: (res) => {
+        if (res.error) return reject(new Error(res.error));
+        state.gAccessToken = res.access_token;
+        resolve(res.access_token);
+      },
+    });
+    client.requestAccessToken();
+  });
+}
+
+async function getOrCreateCsvFileId(filename, accessToken) {
+  // 同名ファイルが既にあれば上書き対象のIDを返す
+  const q = encodeURIComponent(`name='${filename}' and '${DRIVE_FOLDER_ID}' in parents and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await res.json();
+  return data.files && data.files.length > 0 ? data.files[0].id : null;
+}
+
+async function uploadCsvToDrive(csvContent, filename, accessToken) {
+  const existingId = await getOrCreateCsvFileId(filename, accessToken);
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+  if (existingId) {
+    // 上書き
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'text/csv' },
+      body: blob,
+    });
+  } else {
+    // 新規作成（multipart）
+    const meta = JSON.stringify({ name: filename, parents: [DRIVE_FOLDER_ID] });
+    const form = new FormData();
+    form.append('metadata', new Blob([meta], { type: 'application/json' }));
+    form.append('file', blob);
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: form,
+    });
+  }
+}
+
+async function autoSaveCsvToDrive() {
+  if (!state.gClientId) return; // Google未設定なら何もしない
+  try {
+    const token = state.gAccessToken || await googleSignIn();
+    const y = state.year;
+    const m = state.month;
+    const filename = `vacation_${y}-${String(m + 1).padStart(2, '0')}.csv`;
+    const csvContent = buildCsvContent(y, m);
+    await uploadCsvToDrive(csvContent, filename, token);
+    showStatus(`Google Drive に ${filename} を保存しました`, 'ok');
+    setTimeout(() => hideStatus(), 4000);
+  } catch (e) {
+    // Drive保存失敗はサイレントに（メイン操作は成功済み）
+    console.warn('Drive保存エラー:', e.message);
+  }
+}
 
 // ─── 祝日取得 ────────────────────────────────
 
@@ -169,6 +244,7 @@ async function addVacation(member, start, end, memo) {
   updateMemberDatalist();
   showStatus(`${member} の休みを追加しました`, 'ok');
   setTimeout(() => hideStatus(), 3000);
+  await autoSaveCsvToDrive();
 }
 
 async function deleteVacation(number) {
@@ -311,17 +387,8 @@ function hideStatus() {
 
 // ─── CSV出力 ─────────────────────────────────
 
-function exportCSV() {
-  const y = state.year;
-  const m = state.month;
-  const firstDay = toDateStr(new Date(y, m, 1));
-  const lastDay  = toDateStr(new Date(y, m + 1, 0));
-
-  // 当月に含まれる休みを展開（1日1行）
-  const rows = [];
-  rows.push(['名前', '日付', 'メモ']);
-
-  // 日付順に並べるため、当月の全日を走査
+function buildCsvContent(y, m) {
+  const rows = [['名前', '日付', 'メモ']];
   const lastDate = new Date(y, m + 1, 0).getDate();
   for (let d = 1; d <= lastDate; d++) {
     const dateStr = toDateStr(new Date(y, m, d));
@@ -331,9 +398,14 @@ function exportCSV() {
       }
     }
   }
+  return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+}
 
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-  const bom = '\uFEFF'; // Excel用BOM
+function exportCSV() {
+  const y = state.year;
+  const m = state.month;
+  const csv = buildCsvContent(y, m);
+  const bom = '\uFEFF';
   const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -346,16 +418,19 @@ function exportCSV() {
 // ─── 設定 ────────────────────────────────────
 
 function loadSettings() {
-  state.repo  = localStorage.getItem('gh_repo')  || '';
-  state.token = localStorage.getItem('gh_token') || '';
+  state.repo      = localStorage.getItem('gh_repo')      || '';
+  state.token     = localStorage.getItem('gh_token')     || '';
+  state.gClientId = localStorage.getItem('g_client_id')  || '';
   return !!(state.repo && state.token);
 }
 
-function saveSettings(repo, token) {
-  state.repo  = repo;
-  state.token = token;
-  localStorage.setItem('gh_repo',  repo);
-  localStorage.setItem('gh_token', token);
+function saveSettings(repo, token, gClientId) {
+  state.repo      = repo;
+  state.token     = token;
+  state.gClientId = gClientId;
+  localStorage.setItem('gh_repo',      repo);
+  localStorage.setItem('gh_token',     token);
+  localStorage.setItem('g_client_id',  gClientId);
 }
 
 // ─── ユーティリティ ──────────────────────────
@@ -402,18 +477,20 @@ function bindEvents() {
 
   // 設定モーダル
   document.getElementById('btn-settings').addEventListener('click', () => {
-    document.getElementById('input-repo').value  = state.repo;
-    document.getElementById('input-token').value = state.token;
+    document.getElementById('input-repo').value    = state.repo;
+    document.getElementById('input-token').value   = state.token;
+    document.getElementById('input-gclient').value = state.gClientId;
     document.getElementById('settings-modal').classList.remove('hidden');
   });
   document.getElementById('btn-cancel-settings').addEventListener('click', () => {
     document.getElementById('settings-modal').classList.add('hidden');
   });
   document.getElementById('btn-save-settings').addEventListener('click', async () => {
-    const repo  = document.getElementById('input-repo').value.trim();
-    const token = document.getElementById('input-token').value.trim();
+    const repo      = document.getElementById('input-repo').value.trim();
+    const token     = document.getElementById('input-token').value.trim();
+    const gClientId = document.getElementById('input-gclient').value.trim();
     if (!repo || !token) { alert('リポジトリとトークンを入力してください'); return; }
-    saveSettings(repo, token);
+    saveSettings(repo, token, gClientId);
     document.getElementById('settings-modal').classList.add('hidden');
     document.getElementById('btn-add').disabled = false;
     document.getElementById('btn-csv').disabled = false;
