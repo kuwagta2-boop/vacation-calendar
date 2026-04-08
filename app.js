@@ -395,7 +395,7 @@ function bindEvents() {
     document.getElementById('add-modal').classList.add('hidden');
   });
   document.getElementById('btn-submit-add').addEventListener('click', async () => {
-    const name  = document.getElementById('input-name').value.trim();
+    const name  = document.getElementById('input-name').value.trim().replace(/　/g, ' ');
     const start = document.getElementById('input-start').value;
     const end   = document.getElementById('input-end').value;
     const memo  = document.getElementById('input-memo').value.trim();
