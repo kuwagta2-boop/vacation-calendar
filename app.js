@@ -309,6 +309,40 @@ function hideStatus() {
   bar.classList.add('hidden');
 }
 
+// ─── CSV出力 ─────────────────────────────────
+
+function exportCSV() {
+  const y = state.year;
+  const m = state.month;
+  const firstDay = toDateStr(new Date(y, m, 1));
+  const lastDay  = toDateStr(new Date(y, m + 1, 0));
+
+  // 当月に含まれる休みを展開（1日1行）
+  const rows = [];
+  rows.push(['名前', '日付', 'メモ']);
+
+  // 日付順に並べるため、当月の全日を走査
+  const lastDate = new Date(y, m + 1, 0).getDate();
+  for (let d = 1; d <= lastDate; d++) {
+    const dateStr = toDateStr(new Date(y, m, d));
+    for (const v of state.vacations) {
+      if (isInRange(dateStr, v.start, v.end)) {
+        rows.push([v.member, dateStr, v.memo || '']);
+      }
+    }
+  }
+
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const bom = '\uFEFF'; // Excel用BOM
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vacation_${y}-${String(m + 1).padStart(2, '0')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── 設定 ────────────────────────────────────
 
 function loadSettings() {
@@ -363,6 +397,9 @@ function bindEvents() {
     renderCalendar();
   });
 
+  // CSVダウンロード
+  document.getElementById('btn-csv').addEventListener('click', exportCSV);
+
   // 設定モーダル
   document.getElementById('btn-settings').addEventListener('click', () => {
     document.getElementById('input-repo').value  = state.repo;
@@ -379,6 +416,7 @@ function bindEvents() {
     saveSettings(repo, token);
     document.getElementById('settings-modal').classList.add('hidden');
     document.getElementById('btn-add').disabled = false;
+    document.getElementById('btn-csv').disabled = false;
     await loadVacations();
   });
 
@@ -448,6 +486,7 @@ function bindEvents() {
 
   if (ready) {
     document.getElementById('btn-add').disabled = false;
+    document.getElementById('btn-csv').disabled = false;
     await loadVacations();
   } else {
     showStatus('右上の ⚙️ から GitHub リポジトリと Personal Access Token を設定してください', 'info');
