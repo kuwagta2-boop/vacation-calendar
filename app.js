@@ -148,14 +148,12 @@ async function addVacation(member, start, end, memo) {
   const color = state.members[member] || PALETTE[Object.keys(state.members).length % PALETTE.length];
   showStatus('追加中...', 'info');
 
-  await ensureLabel(member, color);
-
   const issue = await ghFetch('/issues', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title: vacationToTitle(member, start, end, memo),
-      labels: [VACATION_LABEL, MEMBER_LABEL_PREFIX + member],
+      labels: [VACATION_LABEL],
     }),
   });
 
