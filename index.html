@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>休みカレンダー</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 設定モーダル -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>⚙️ GitHub 設定</h2>
+      <p class="hint">
+        GitHub Issues をデータストアとして使います。<br />
+        Personal Access Token には <code>repo</code> スコープが必要です。
+      </p>
+      <label>
+        リポジトリ <small>(例: username/my-calendar)</small>
+        <input id="input-repo" type="text" placeholder="username/repo-name" />
+      </label>
+      <label>
+        Personal Access Token
+        <input id="input-token" type="password" placeholder="ghp_xxxxxxxxxxxx" />
+      </label>
+      <div class="modal-actions">
+        <button id="btn-save-settings" class="btn-primary">保存して接続</button>
+        <button id="btn-cancel-settings" class="btn-ghost">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 休み追加モーダル -->
+  <div id="add-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>✏️ 休みを追加</h2>
+      <label>
+        名前
+        <input id="input-name" type="text" placeholder="山田 太郎" list="member-list" />
+        <datalist id="member-list"></datalist>
+      </label>
+      <label>
+        開始日
+        <input id="input-start" type="date" />
+      </label>
+      <label>
+        終了日
+        <input id="input-end" type="date" />
+      </label>
+      <label>
+        メモ（任意）
+        <input id="input-memo" type="text" placeholder="帰省・旅行など" />
+      </label>
+      <div class="modal-actions">
+        <button id="btn-submit-add" class="btn-primary">追加</button>
+        <button id="btn-cancel-add" class="btn-ghost">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 削除確認モーダル -->
+  <div id="delete-modal" class="modal-overlay hidden">
+    <div class="modal small">
+      <h2>🗑️ 休みを削除</h2>
+      <p id="delete-desc"></p>
+      <div class="modal-actions">
+        <button id="btn-confirm-delete" class="btn-danger">削除する</button>
+        <button id="btn-cancel-delete" class="btn-ghost">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- アプリ本体 -->
+  <header>
+    <div class="header-left">
+      <h1>📅 休みカレンダー</h1>
+    </div>
+    <div class="header-right">
+      <button id="btn-add" class="btn-primary" disabled>＋ 休みを追加</button>
+      <button id="btn-settings" class="btn-icon" title="設定">⚙️</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="status-bar" class="status-bar hidden"></div>
+
+    <!-- メンバー凡例 -->
+    <div id="legend" class="legend"></div>
+
+    <!-- カレンダーナビ -->
+    <div class="calendar-nav">
+      <button id="btn-prev" class="btn-nav">‹</button>
+      <h2 id="month-label">2024年 1月</h2>
+      <button id="btn-next" class="btn-nav">›</button>
+      <button id="btn-today" class="btn-ghost small">今月</button>
+    </div>
+
+    <!-- カレンダーグリッド -->
+    <div class="calendar">
+      <div class="calendar-header">
+        <span>日</span><span>月</span><span>火</span>
+        <span>水</span><span>木</span><span>金</span><span>土</span>
+      </div>
+      <div id="calendar-body" class="calendar-body"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
