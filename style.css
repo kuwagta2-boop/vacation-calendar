@@ -199,6 +199,9 @@ main {
 }
 .cal-cell:nth-child(7n) { border-right: none; }
 
+.cal-cell { cursor: pointer; }
+.cal-cell:hover { background: #f0f4ff; }
+.cal-cell.today:hover { background: #dbeafe; }
 .cal-cell.other-month .day-num { color: var(--text-muted); opacity: 0.4; }
 .cal-cell.today {
   background: var(--today-bg);

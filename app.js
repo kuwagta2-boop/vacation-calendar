@@ -241,7 +241,7 @@ function renderCalendar() {
     }).join('');
 
     cells.push(`
-      <div class="cal-cell${isCurrentMonth ? '' : ' other-month'}${isToday ? ' today' : ''}">
+      <div class="cal-cell${isCurrentMonth ? '' : ' other-month'}${isToday ? ' today' : ''}" data-date="${dateStr}">
         <div class="day-num">${date.getDate()}</div>
         ${barsHtml}
       </div>
@@ -249,6 +249,19 @@ function renderCalendar() {
   }
 
   body.innerHTML = cells.join('');
+
+  // 日付セルクリックで休み追加モーダルを開く
+  body.querySelectorAll('.cal-cell[data-date]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      if (!state.repo || !state.token) return;
+      const dateStr = cell.dataset.date;
+      document.getElementById('input-name').value  = '';
+      document.getElementById('input-start').value = dateStr;
+      document.getElementById('input-end').value   = dateStr;
+      document.getElementById('input-memo').value  = '';
+      document.getElementById('add-modal').classList.remove('hidden');
+    });
+  });
 
   // 削除ボタンのイベント
   body.querySelectorAll('[data-del]').forEach(el => {
