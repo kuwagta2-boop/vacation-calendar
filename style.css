@@ -203,6 +203,17 @@ main {
 .cal-cell:hover { background: #f0f4ff; }
 .cal-cell.today:hover { background: #dbeafe; }
 .cal-cell.other-month .day-num { color: var(--text-muted); opacity: 0.4; }
+.cal-cell.holiday .day-num { color: #e53e3e; }
+.cal-cell.holiday.today .day-num { background: #e53e3e; color: #fff; }
+.holiday-name {
+  font-size: 0.65rem;
+  color: #e53e3e;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .cal-cell.today {
   background: var(--today-bg);
 }

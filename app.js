@@ -21,9 +21,21 @@ let state = {
   month: new Date().getMonth(), // 0-indexed
   vacations: [],       // { id, number, member, start, end, memo, color }
   members: {},         // { name: color }
+  holidays: {},        // { "YYYY-MM-DD": "祝日名" }
   loading: false,
   deleteTarget: null,
 };
+
+// ─── 祝日取得 ────────────────────────────────
+
+async function loadHolidays() {
+  try {
+    const res = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+    if (res.ok) state.holidays = await res.json();
+  } catch {
+    // 祝日取得失敗は無視
+  }
+}
 
 // ─── GitHub API ──────────────────────────────
 
@@ -224,6 +236,7 @@ function renderCalendar() {
     const dateStr = toDateStr(date);
     const isCurrentMonth = date.getMonth() === m;
     const isToday = dateStr === todayStr;
+    const holidayName = state.holidays[dateStr] || '';
 
     const dayVacations = state.vacations.filter(v => isInRange(dateStr, v.start, v.end));
 
@@ -241,8 +254,9 @@ function renderCalendar() {
     }).join('');
 
     cells.push(`
-      <div class="cal-cell${isCurrentMonth ? '' : ' other-month'}${isToday ? ' today' : ''}" data-date="${dateStr}">
-        <div class="day-num">${date.getDate()}</div>
+      <div class="cal-cell${isCurrentMonth ? '' : ' other-month'}${isToday ? ' today' : ''}${holidayName ? ' holiday' : ''}" data-date="${dateStr}">
+        <div class="day-num" ${holidayName ? `title="${escapeHtml(holidayName)}"` : ''}>${date.getDate()}</div>
+        ${holidayName ? `<div class="holiday-name">${escapeHtml(holidayName)}</div>` : ''}
         ${barsHtml}
       </div>
     `);
@@ -429,6 +443,7 @@ function bindEvents() {
 
 (async function init() {
   bindEvents();
+  await loadHolidays();
 
   const ready = loadSettings();
   renderCalendar(); // 空のカレンダーを表示
