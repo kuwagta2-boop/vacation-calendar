@@ -244,7 +244,6 @@ async function addVacation(member, start, end, memo) {
   updateMemberDatalist();
   showStatus(`${member} の休みを追加しました`, 'ok');
   setTimeout(() => hideStatus(), 3000);
-  await autoSaveCsvToDrive();
 }
 
 async function deleteVacation(number) {
