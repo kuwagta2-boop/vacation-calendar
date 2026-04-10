@@ -132,7 +132,7 @@ async function ghFetch(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-// Issue のタイトルをパース: "[VACATION] member | 2024-01-01~2024-01-05 | memo"
+// Issue のタイトルをパース: "[VACATION] member | 2024-01-01~2024-01-05 | memo | vtype"
 function issueToVacation(issue) {
   if (!issue.title.startsWith('[VACATION]')) return null;
   try {
@@ -142,15 +142,18 @@ function issueToVacation(issue) {
     const member = parts[0].trim();
     const [start, end] = parts[1].trim().split('~');
     const memo = parts[2] ? parts[2].trim() : '';
+    const vtype = parts[3] && ['AM', 'PM'].includes(parts[3].trim()) ? parts[3].trim() : 'full';
     if (!start || !end) return null;
-    return { id: issue.id, number: issue.number, member, start: start.trim(), end: end.trim(), memo };
+    return { id: issue.id, number: issue.number, member, start: start.trim(), end: end.trim(), memo, vtype };
   } catch {
     return null;
   }
 }
 
-function vacationToTitle(member, start, end, memo) {
-  return `[VACATION] ${member} | ${start}~${end}${memo ? ' | ' + memo : ''}`;
+function vacationToTitle(member, start, end, memo, vtype) {
+  let title = `[VACATION] ${member} | ${start}~${end} | ${memo}`;
+  if (vtype && vtype !== 'full') title += ` | ${vtype}`;
+  return title;
 }
 
 async function ensureLabel(name, color) {
@@ -219,7 +222,7 @@ async function loadVacations() {
   updateMemberDatalist();
 }
 
-async function addVacation(member, start, end, memo) {
+async function addVacation(member, start, end, memo, vtype = 'full') {
   const color = state.members[member] || PALETTE[Object.keys(state.members).length % PALETTE.length];
   showStatus('追加中...', 'info');
 
@@ -227,7 +230,7 @@ async function addVacation(member, start, end, memo) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      title: vacationToTitle(member, start, end, memo),
+      title: vacationToTitle(member, start, end, memo, vtype),
       labels: [VACATION_LABEL],
     }),
   });
@@ -236,7 +239,7 @@ async function addVacation(member, start, end, memo) {
     state.members[member] = color;
   }
 
-  const v = { id: issue.id, number: issue.number, member, start, end, memo, color };
+  const v = { id: issue.id, number: issue.number, member, start, end, memo, vtype, color };
   state.vacations.push(v);
 
   renderLegend();
@@ -316,12 +319,22 @@ function renderCalendar() {
     const barsHtml = dayVacations.map(v => {
       const isStart = v.start === dateStr;
       const label = isStart ? escapeHtml(v.member) : '';
+      const vtype = v.vtype || 'full';
+      const bgStyle = vtype === 'AM'
+        ? `background: linear-gradient(to bottom, ${v.color} 50%, ${v.color}44 50%)`
+        : vtype === 'PM'
+        ? `background: linear-gradient(to bottom, ${v.color}44 50%, ${v.color} 50%)`
+        : `background: ${v.color}`;
+      const typeLabel = vtype !== 'full' ? vtype : '';
+      const typeTitle = vtype === 'AM' ? 'AM休み' : vtype === 'PM' ? 'PM休み' : '1日休み';
       return `
         <div class="vacation-bar"
-             style="background:${v.color}"
-             title="${escapeHtml(v.member)}: ${v.start} ~ ${v.end}${v.memo ? ' (' + v.memo + ')' : ''}"
+             style="${bgStyle}"
+             data-vtype="${vtype}"
+             title="${escapeHtml(v.member)}: ${v.start} ~ ${v.end} [${typeTitle}]${v.memo ? ' (' + v.memo + ')' : ''}"
              data-del="${v.number}">
           <span class="bar-name">${label}</span>
+          ${typeLabel ? `<span class="bar-type-badge">${typeLabel}</span>` : ''}
           ${isStart ? `<span class="bar-del" data-del="${v.number}">✕</span>` : ''}
         </div>`;
     }).join('');
@@ -346,6 +359,7 @@ function renderCalendar() {
       document.getElementById('input-start').value = dateStr;
       document.getElementById('input-end').value   = dateStr;
       document.getElementById('input-memo').value  = '';
+      document.querySelector('input[name="vtype"][value="full"]').checked = true;
       document.getElementById('add-modal').classList.remove('hidden');
     });
   });
@@ -387,13 +401,14 @@ function hideStatus() {
 // ─── CSV出力 ─────────────────────────────────
 
 function buildCsvContent(y, m) {
-  const rows = [['名前', '日付', 'メモ']];
+  const rows = [['名前', '日付', '種別', 'メモ']];
   const lastDate = new Date(y, m + 1, 0).getDate();
   for (let d = 1; d <= lastDate; d++) {
     const dateStr = toDateStr(new Date(y, m, d));
     for (const v of state.vacations) {
       if (isInRange(dateStr, v.start, v.end)) {
-        rows.push([v.member, dateStr, v.memo || '']);
+        const typeLabel = v.vtype === 'AM' ? 'AM休み' : v.vtype === 'PM' ? 'PM休み' : '1日休み';
+        rows.push([v.member, dateStr, typeLabel, v.memo || '']);
       }
     }
   }
@@ -503,6 +518,7 @@ function bindEvents() {
     document.getElementById('input-start').value = today;
     document.getElementById('input-end').value   = today;
     document.getElementById('input-memo').value  = '';
+    document.querySelector('input[name="vtype"][value="full"]').checked = true;
     document.getElementById('add-modal').classList.remove('hidden');
   });
   document.getElementById('btn-cancel-add').addEventListener('click', () => {
@@ -513,12 +529,13 @@ function bindEvents() {
     const start = document.getElementById('input-start').value;
     const end   = document.getElementById('input-end').value;
     const memo  = document.getElementById('input-memo').value.trim();
+    const vtype = document.querySelector('input[name="vtype"]:checked')?.value || 'full';
     if (!name)  { alert('名前を入力してください'); return; }
     if (!start || !end) { alert('日付を入力してください'); return; }
     if (start > end)    { alert('終了日は開始日以降にしてください'); return; }
     document.getElementById('add-modal').classList.add('hidden');
     try {
-      await addVacation(name, start, end, memo);
+      await addVacation(name, start, end, memo, vtype);
     } catch (e) {
       showStatus(`エラー: ${e.message}`, 'error');
     }

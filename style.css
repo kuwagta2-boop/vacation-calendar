@@ -266,6 +266,58 @@ main {
   flex-shrink: 0;
 }
 .vacation-bar .bar-del:hover { opacity: 1; }
+.bar-type-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.35);
+  padding: 0 3px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-left: 2px;
+  letter-spacing: 0.02em;
+}
+
+/* ── 種別セレクタ ── */
+.type-selector-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.type-selector-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.type-radio-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.type-radio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  border-right: 1px solid var(--border);
+}
+.type-radio:last-child { border-right: none; }
+.type-radio input[type="radio"] { display: none; }
+.type-radio span {
+  padding: 9px 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 100%;
+  text-align: center;
+}
+.type-radio:has(input:checked) span {
+  background: var(--primary);
+  color: #fff;
+}
 
 /* ── モーダル ── */
 .modal-overlay {
