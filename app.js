@@ -420,7 +420,7 @@ function exportCSV() {
 function loadSettings() {
   state.repo      = localStorage.getItem('gh_repo')      || '';
   state.token     = localStorage.getItem('gh_token')     || '';
-  state.gClientId = localStorage.getItem('g_client_id')  || '';
+  state.gClientId = localStorage.getItem('g_client_id')  || '958063370820-rd874sgoi27r1riel1kel55nmc2nph7v.apps.googleusercontent.com';
   return !!(state.repo && state.token);
 }
 
