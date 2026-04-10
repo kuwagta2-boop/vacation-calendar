@@ -320,11 +320,7 @@ function renderCalendar() {
       const isStart = v.start === dateStr;
       const label = isStart ? escapeHtml(v.member) : '';
       const vtype = v.vtype || 'full';
-      const bgStyle = vtype === 'AM'
-        ? `background: linear-gradient(to bottom, ${v.color} 50%, ${v.color}44 50%)`
-        : vtype === 'PM'
-        ? `background: linear-gradient(to bottom, ${v.color}44 50%, ${v.color} 50%)`
-        : `background: ${v.color}`;
+      const bgStyle = `background: ${v.color}`;
       const typeLabel = vtype !== 'full' ? vtype : '';
       const typeTitle = vtype === 'AM' ? 'AM休み' : vtype === 'PM' ? 'PM休み' : '1日休み';
       return `
