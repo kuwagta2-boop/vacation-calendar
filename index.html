@@ -45,8 +45,14 @@
       <h2>✏️ 休みを追加</h2>
       <label>
         名前
-        <input id="input-name" type="text" placeholder="山田 太郎" list="member-list" />
-        <datalist id="member-list"></datalist>
+        <select id="input-name-select">
+          <option value="">-- 選択してください --</option>
+          <option value="__new__">＋ 新しいメンバーを追加</option>
+        </select>
+      </label>
+      <label id="new-member-wrap" class="hidden">
+        新しいメンバー名
+        <input id="input-name-new" type="text" placeholder="山田 太郎" />
       </label>
       <label>
         開始日

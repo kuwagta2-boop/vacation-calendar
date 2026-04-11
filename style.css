@@ -374,6 +374,19 @@ main {
   font-family: inherit;
 }
 .modal label input:focus { border-color: var(--primary); }
+.modal label select {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  background: var(--surface);
+  cursor: pointer;
+}
+.modal label select:focus { border-color: var(--primary); }
 
 .modal-actions {
   display: flex;

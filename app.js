@@ -351,7 +351,9 @@ function renderCalendar() {
     cell.addEventListener('click', () => {
       if (!state.repo || !state.token) return;
       const dateStr = cell.dataset.date;
-      document.getElementById('input-name').value  = '';
+      document.getElementById('input-name-select').value = '';
+      document.getElementById('new-member-wrap').classList.add('hidden');
+      document.getElementById('input-name-new').value  = '';
       document.getElementById('input-start').value = dateStr;
       document.getElementById('input-end').value   = dateStr;
       document.getElementById('input-memo').value  = '';
@@ -376,10 +378,20 @@ function renderCalendar() {
 }
 
 function updateMemberDatalist() {
-  const dl = document.getElementById('member-list');
-  dl.innerHTML = Object.keys(state.members)
-    .map(n => `<option value="${escapeHtml(n)}">`)
-    .join('');
+  const sel = document.getElementById('input-name-select');
+  const current = sel.value;
+  // 既存メンバーのoptionを再構築（先頭2件＝プレースホルダー＋新規追加 は固定）
+  const fixed = Array.from(sel.options).slice(0, 2);
+  sel.innerHTML = '';
+  fixed.forEach(o => sel.appendChild(o));
+  Object.keys(state.members).sort().forEach(name => {
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    sel.appendChild(o);
+  });
+  // 選択を復元（可能なら）
+  if ([...sel.options].some(o => o.value === current)) sel.value = current;
 }
 
 // ─── ステータス ──────────────────────────────
@@ -507,10 +519,19 @@ function bindEvents() {
     await loadVacations();
   });
 
+  // 名前セレクト：「新しいメンバーを追加」選択時にテキスト入力を表示
+  document.getElementById('input-name-select').addEventListener('change', () => {
+    const isNew = document.getElementById('input-name-select').value === '__new__';
+    document.getElementById('new-member-wrap').classList.toggle('hidden', !isNew);
+    if (isNew) document.getElementById('input-name-new').focus();
+  });
+
   // 休み追加モーダル
   document.getElementById('btn-add').addEventListener('click', () => {
     const today = toDateStr(new Date());
-    document.getElementById('input-name').value  = '';
+    document.getElementById('input-name-select').value = '';
+    document.getElementById('new-member-wrap').classList.add('hidden');
+    document.getElementById('input-name-new').value  = '';
     document.getElementById('input-start').value = today;
     document.getElementById('input-end').value   = today;
     document.getElementById('input-memo').value  = '';
@@ -521,7 +542,11 @@ function bindEvents() {
     document.getElementById('add-modal').classList.add('hidden');
   });
   document.getElementById('btn-submit-add').addEventListener('click', async () => {
-    const name  = document.getElementById('input-name').value.trim().replace(/　/g, ' ');
+    const selectVal = document.getElementById('input-name-select').value;
+    const rawName = selectVal === '__new__'
+      ? document.getElementById('input-name-new').value
+      : selectVal;
+    const name = rawName.trim().replace(/　/g, ' ');
     const start = document.getElementById('input-start').value;
     const end   = document.getElementById('input-end').value;
     const memo  = document.getElementById('input-memo').value.trim();
