@@ -8,12 +8,17 @@ const MEMBER_LABEL_PREFIX = 'member-';
 const DRIVE_FOLDER_ID = '1F8m4_6KCIJevFN1ntT8SHXbP_B-my4nv';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
-// メンバーカラーパレット（HSL）
-const PALETTE = [
-  '#e53e3e', '#dd6b20', '#d69e2e', '#38a169',
-  '#3182ce', '#805ad5', '#d53f8c', '#00b5d8',
-  '#2d9748', '#c05621', '#6b46c1', '#2b6cb0',
-];
+// 名前から固有色を生成（ハッシュ → 黄金角でHSL分散）
+function nameToColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+  // 黄金角（137.508°）を使って色相を均等分散
+  const hue = Math.round((((Math.abs(hash) * 0.618033988749895) % 1) * 360));
+  return `hsl(${hue}, 62%, 40%)`;
+}
 
 // ─── 状態 ───────────────────────────────────
 let state = {
@@ -197,14 +202,11 @@ async function loadVacations() {
 
     state.members = {};
     state.vacations = [];
-    let colorIdx = 0;
-
     for (const issue of all) {
       const v = issueToVacation(issue);
       if (!v) continue;
       if (!state.members[v.member]) {
-        state.members[v.member] = PALETTE[colorIdx % PALETTE.length];
-        colorIdx++;
+        state.members[v.member] = nameToColor(v.member);
       }
       v.color = state.members[v.member];
       state.vacations.push(v);
@@ -223,7 +225,7 @@ async function loadVacations() {
 }
 
 async function addVacation(member, start, end, memo, vtype = 'full') {
-  const color = state.members[member] || PALETTE[Object.keys(state.members).length % PALETTE.length];
+  const color = state.members[member] || nameToColor(member);
   showStatus('追加中...', 'info');
 
   const issue = await ghFetch('/issues', {
