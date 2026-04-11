@@ -380,16 +380,28 @@ function renderCalendar() {
 function updateMemberDatalist() {
   const sel = document.getElementById('input-name-select');
   const current = sel.value;
-  // 既存メンバーのoptionを再構築（先頭2件＝プレースホルダー＋新規追加 は固定）
-  const fixed = Array.from(sel.options).slice(0, 2);
   sel.innerHTML = '';
-  fixed.forEach(o => sel.appendChild(o));
+
+  // プレースホルダー
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '-- 選択してください --';
+  sel.appendChild(placeholder);
+
+  // 既存メンバー（五十音順）
   Object.keys(state.members).sort().forEach(name => {
     const o = document.createElement('option');
     o.value = name;
     o.textContent = name;
     sel.appendChild(o);
   });
+
+  // 新規追加は一番下
+  const newOpt = document.createElement('option');
+  newOpt.value = '__new__';
+  newOpt.textContent = '＋ 新しいメンバーを追加';
+  sel.appendChild(newOpt);
+
   // 選択を復元（可能なら）
   if ([...sel.options].some(o => o.value === current)) sel.value = current;
 }
