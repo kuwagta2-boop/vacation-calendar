@@ -318,7 +318,7 @@ function renderCalendar() {
 
     const barsHtml = dayVacations.map(v => {
       const isStart = v.start === dateStr;
-      const label = isStart ? escapeHtml(v.member) : '';
+      const label = escapeHtml(v.member);
       const vtype = v.vtype || 'full';
       const bgStyle = `background: ${v.color}`;
       const typeLabel = vtype !== 'full' ? vtype : '';
