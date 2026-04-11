@@ -17,7 +17,7 @@ function nameToColor(name) {
   }
   // 黄金角（137.508°）を使って色相を均等分散
   const hue = Math.round((((Math.abs(hash) * 0.618033988749895) % 1) * 360));
-  return `hsl(${hue}, 62%, 40%)`;
+  return `hsl(${hue}, 85%, 48%)`;
 }
 
 // ─── 状態 ───────────────────────────────────
